@@ -2,38 +2,35 @@
 from itertools import chain
 
 class Matrix:
-    # TODO: Coeffs and matrix as properties?
-    # TODO: make set also a possibility
-    # TODO: make sure you can't set a value outside the matrix
-    # TODO: make beautiful printing output (render floats without decimals as ints, truncate long floats)
-    # TODO: wrap repeated code in a decorator?
-    # TODO: add inversion
     # TODO: conceive tests and test
-    def __init__(self, rows: int, columns: int, coeff) -> None:
+    # TODO: make adaptable printing output (squeeze it horizontally if all ints, for example; and adapt for large values by converting them to scientific notation)
+    def __init__(self, rows: int, columns: int, coefficients) -> None:
 
         # Internal cuisine
-        if isinstance(coeff, Matrix):
-            self._coeff = list(chain(*coeff._matrix))
+        if isinstance(coefficients, Matrix):
+            self._coefficients = list(chain(*coefficients._matrix))
+        elif isinstance(coefficients, (int, float)):
+            self._coefficients = [coefficients] * rows * columns
         else:
-            self._coeff = coeff
+            self._coefficients = coefficients
         self._rows = rows
         self._columns = columns
+        self._matrix = self._initialize_matrix(self._rows, self._columns,
+                                               self._coefficients)
 
-        self._matrix = []
-        # Initialise the matrix given a value
-        if isinstance(self._coeff, (int, float)):
-            for row in range(self._rows):
-                self._matrix.append([self._coeff] * self._columns)
-        # Initialize matrix given an array and dimensions (or another matrix given we transformed it to _coeff list)
-        elif isinstance(self._coeff, (list, set, tuple)):
+    def _initialize_matrix(self, rows, columns, coefficients):
+        matrix = []
+        # Initialize matrix given an array and dimensions (or another matrix given we transformed it to _coefficients list)
+        if isinstance(coefficients, (list, tuple)):
             # Check that the dimensions are correct
-            if self._rows * self._columns != len(self._coeff):
+            if rows * columns != len(coefficients):
                 raise ValueError("Dimensions do not match")
-            for row in range(self._rows):
-                self._matrix.append(self._coeff[self._columns*row:self._columns*(row+1)])
+            for row in range(rows):
+                matrix.append(coefficients[columns*row:columns*(row+1)])
         else:
-            raise TypeError("Invalid input type of coefficients: should be int, float, list, set, tuple, or Matrix")
-
+            raise TypeError(f"Invalid input type of coefficients - {type(coefficients)}"
+                            ": should be int, float, list, tuple, or Matrix")
+        return matrix
 
     # Immutable properties
     @property
@@ -43,6 +40,16 @@ class Matrix:
     @property
     def columns(self):
         return self._columns
+
+    @property
+    def coefficients(self):
+        return self._coefficients
+
+    @coefficients.setter
+    def coefficients(self, value):
+        self._coefficients = value
+        self._matrix = self._initialize_matrix(self._rows, self._columns,
+                                               self._coefficients)
 
     # Overload operators (= cannot be overloaded by default)
     def __eq__(self, other):
@@ -64,7 +71,7 @@ class Matrix:
             return Matrix(self._rows, self._columns, result)
         elif isinstance(other, (int, float)):
             # Add a scalar to the matrix
-            return Matrix(self._rows, self._columns, [x + other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x + other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Addition with Matrix is not implemented for this type: {type(other)}")
 
@@ -81,7 +88,7 @@ class Matrix:
             return Matrix(self._rows, self._columns, result)
         elif isinstance(other, (int, float)):
             # Add a scalar to the matrix
-            return Matrix(self._rows, self._columns, [x - other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x - other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Subtraction from Matrix is not implemented for this type: {type(other)}")
 
@@ -98,19 +105,19 @@ class Matrix:
             return Matrix(self._rows, other._columns, result)
         elif isinstance(other, (int, float)):
             # Multiply the matrix by a scalar
-            return Matrix(self._rows, self._columns, [x * other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x * other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Multiplication with Matrix is not implemented for this type: {type(other)}")
 
     def __rmul__(self, other): # To account for the case where the scalar is on the left
         if isinstance(other, (int, float)):
-            return Matrix(self._rows, self._columns, [x * other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x * other for x in self._coefficients])
 
     def __neg__(self):
-        return Matrix(self._rows, self._columns, [-x for x in self._coeff])
+        return Matrix(self._rows, self._columns, [-x for x in self._coefficients])
 
     def __truediv__(self, other):
-        return Matrix(self._rows, self._columns, [x / other for x in self._coeff])
+        return Matrix(self._rows, self._columns, [x / other for x in self._coefficients])
 
     def __iadd__(self, other):
         if isinstance(other, Matrix):
@@ -125,7 +132,7 @@ class Matrix:
             return Matrix(self._rows, self._columns, result)
         elif isinstance(other, (int, float)):
             # Add a scalar to the matrix
-            return Matrix(self._rows, self._columns, [x + other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x + other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Addition with Matrix is not implemented for this type: {type(other)}")
 
@@ -142,7 +149,7 @@ class Matrix:
             return Matrix(self._rows, self._columns, result)
         elif isinstance(other, (int, float)):
             # Add a scalar to the matrix
-            return Matrix(self._rows, self._columns, [x + other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x + other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Subtraction from Matrix is not implemented for this type: {type(other)}")
 
@@ -160,26 +167,31 @@ class Matrix:
             return Matrix(self._rows, other._columns, result)
         elif isinstance(other, (int, float)):
             # Multiply the matrix by a scalar
-            return Matrix(self._rows, self._columns, [x * other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x * other for x in self._coefficients])
         else:
             raise NotImplementedError(f"Multiplication with Matrix is not implemented for this type: {type(other)}")
 
     def __itruediv__(self, other):
         if isinstance(other, (int, float)):
-            return Matrix(self._rows, self._columns, [x * other for x in self._coeff])
+            return Matrix(self._rows, self._columns, [x * other for x in self._coefficients])
 
     # Copy the matrix
     def copy(self):
-        return Matrix(self._rows, self._columns, self._coeff)
+        return Matrix(self._rows, self._columns, self._coefficients)
 
     # Overload print (formatting methods)
     def __str__(self) -> str:
+        MAX_SPACE = 7
         output = ""
         for row in range(self._rows):
             for column in range(self._columns):
-                output += str(self._matrix[row][column]) + " "
+                numberFormat = str(round(self._matrix[row][column], 2))
+                if len(numberFormat) < MAX_SPACE - 1:
+                    output += numberFormat + (MAX_SPACE - len(numberFormat)) * " "
+                else:
+                    output += numberFormat[:MAX_SPACE-3] + ".. "
             output += "\n"
         return output
 
     def __repr__(self) -> str:
-        return f"Matrix({self._rows}, {self._columns}, {self._coeff})"
+        return f"Matrix({self._rows}, {self._columns}, {self._coefficients})"
